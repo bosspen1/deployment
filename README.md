@@ -1,2 +1,2 @@
 # deployment
-node server.js
+node deployment.js
