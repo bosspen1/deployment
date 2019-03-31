@@ -1,4 +1,3 @@
-```
 #!/bin/bash
 
 App='deployment'
@@ -16,4 +15,3 @@ cp -f $ProjectHome/$App.js $RunHome/$App.js
 
 cd $RunHome
 nohup node $App.js > $App.log 2>&1 &
-```
