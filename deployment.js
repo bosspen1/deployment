@@ -11,7 +11,7 @@ function execTask(cmd) {
     } else {
       result = `${ stdout }`;
     }
-    console.log(result);
+    console.log('result = %s', result);
     sendMessage(result);
     // res.end(stdout);
   });
@@ -92,7 +92,7 @@ http.createServer((message, res) => {
     });
     message.addListener("end", () => {
       let obj = JSON.parse(jsonData);
-      console.log(obj.ref);
+      console.log(`ref: ${obj.ref}`);
       if (obj.ref === 'refs/heads/' + prodBranch) {
         execTask(cmd);
       }
