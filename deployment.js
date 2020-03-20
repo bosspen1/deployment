@@ -3,6 +3,9 @@ const { port, token, pushEvent, prodBranch, ddToken, projectMap } = require('./c
 const http = require("http");
 const exec = require('child_process').exec;
 
+const express = require('express');
+const app = express();
+
 function execTask(cmd) {
   exec(cmd, (err, stdout, stderr) => {
     let result;
@@ -50,8 +53,27 @@ function sendMessage(content) {
   req.end();
 }
 
-http.createServer((message, res) => {
-  const { method, url, headers } = message;
+app.post('/*', function (request, response) {
+  try {
+    handle(request, response);
+  } catch (error) {
+    console.log(error);
+    response.end(result);
+  }
+});
+
+app.get('/*', function (request, response) {
+  try {
+    handle(request, response);
+  } catch (error) {
+    console.log(error);
+    response.end(result);
+  }
+});
+
+function handle(request, response) {
+
+  const { method, url, headers } = request;
 
   console.log(new Date());
   console.log('method = %s, url = %s', method, url);
@@ -67,12 +89,12 @@ http.createServer((message, res) => {
   console.log('token = %s, event = %s', xToken, xEvent);
 
   if (xToken !== token) {
-    res.end('401 Unauthorized, invalid token: ' + xToken);
+    response.end('401 Unauthorized, invalid token: ' + xToken);
     return;
   }
 
   if (xEvent !== pushEvent) {
-    res.end('event ' + xEvent + ' not supported');
+    response.end('event ' + xEvent + ' not supported');
     return;
   }
 
@@ -80,30 +102,40 @@ http.createServer((message, res) => {
   const cmd = projectMap.get(key);
 
   if (!cmd) {
-    res.end('project ' + key + ' not exsits');
+    response.end('project ' + key + ' not exsits');
     return;
   }
 
   let result = 'ok';
   try {
     let jsonData = '';
-    message.addListener("data", data => {
+    request.addListener("data", data => {
       jsonData += data;
     });
-    message.addListener("end", () => {
-      let obj = JSON.parse(jsonData);
-      console.log(`ref: ${obj.ref}`);
-      if (obj.ref === 'refs/heads/' + prodBranch) {
-        execTask(cmd);
-      }
+    request.addListener("end", () => {
+      try {
+        let obj = JSON.parse(jsonData);
+        console.log(`ref: ${obj.ref}`);
+        if (obj.ref === 'refs/heads/' + prodBranch) {
+          execTask(cmd);
+        }
+      } catch(error) {}
     });
   } catch (error) {
     result = `${ error }`;
   } finally {
     console.log(result);
-    res.end(result);
+    response.end(result);
   }
+}
 
-}).listen(port);
+app.listen(port, '0.0.0.0', function () {
+ console.log('Server running at http://127.0.0.1:%s/', port);
+});
 
-console.log('Server running at http://127.0.0.1:%s/', port);
+function getClientIp(req) {
+    return req.headers['x-forwarded-for'] ||
+        req.connection.remoteAddress ||
+        req.socket.remoteAddress ||
+        req.connection.socket.remoteAddress || '';
+}

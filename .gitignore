@@ -1,1 +1,4 @@
-/out.txt
+/node_modules/
+/npm-debug.log
+/build/
+/out.log
