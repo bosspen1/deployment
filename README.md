@@ -1,2 +1,5 @@
 # deployment
-node deployment.js
+```shell
+npm install
+npm start
+```

@@ -3,7 +3,6 @@
 App='deployment'
 ProjectHome='/home/wild/deployment'
 RunHome='/opt/deployment'
-Time=`date '+%Y%m%d%H%M%S'`
 
 cd $ProjectHome
 git pull
@@ -14,4 +13,5 @@ cp -f $RunHome/$App.js $RunHome/$App-$Time.js
 cp -f $ProjectHome/$App.js $RunHome/$App.js
 
 cd $RunHome
+npm install
 nohup node $App.js > $App.log 2>&1 &

@@ -6,6 +6,13 @@ const exec = require('child_process').exec;
 const express = require('express');
 const app = express();
 
+function getClientIp(req) {
+  return req.headers['x-forwarded-for'] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    req.connection.socket.remoteAddress || '';
+}
+
 function execTask(cmd) {
   exec(cmd, (err, stdout, stderr) => {
     let result;
@@ -53,30 +60,26 @@ function sendMessage(content) {
   req.end();
 }
 
-app.post('/*', function (request, response) {
+app.get('/*', function (req, res) {
+  red.end('Request method get not supported');
+});
+
+app.post('/*', function (req, res) {
   try {
-    handle(request, response);
+    handle(req, res);
   } catch (error) {
-    console.log(error);
-    response.end(result);
+    console.error(error);
+    res.end(error);
   }
 });
 
-app.get('/*', function (request, response) {
-  try {
-    handle(request, response);
-  } catch (error) {
-    console.log(error);
-    response.end(result);
-  }
-});
+function handle(req, res) {
 
-function handle(request, response) {
-
-  const { method, url, headers } = request;
+  const { method, url, headers } = req;
+  const ip = getClientIp(req);
 
   console.log(new Date());
-  console.log('method = %s, url = %s', method, url);
+  console.log('method = %s, url = %s, ip = %s', method, url, ip);
 
   if (method !== 'POST') {
     res.end('Request method ' + method + ' not supported');
@@ -89,12 +92,12 @@ function handle(request, response) {
   console.log('token = %s, event = %s', xToken, xEvent);
 
   if (xToken !== token) {
-    response.end('401 Unauthorized, invalid token: ' + xToken);
+    res.end('401 Unauthorized, invalid token: ' + xToken);
     return;
   }
 
   if (xEvent !== pushEvent) {
-    response.end('event ' + xEvent + ' not supported');
+    res.end('event ' + xEvent + ' not supported');
     return;
   }
 
@@ -102,17 +105,17 @@ function handle(request, response) {
   const cmd = projectMap.get(key);
 
   if (!cmd) {
-    response.end('project ' + key + ' not exsits');
+    res.end('project ' + key + ' not exsits');
     return;
   }
 
   let result = 'ok';
   try {
     let jsonData = '';
-    request.addListener("data", data => {
+    req.addListener("data", data => {
       jsonData += data;
     });
-    request.addListener("end", () => {
+    req.addListener("end", () => {
       try {
         let obj = JSON.parse(jsonData);
         console.log(`ref: ${obj.ref}`);
@@ -125,17 +128,10 @@ function handle(request, response) {
     result = `${ error }`;
   } finally {
     console.log(result);
-    response.end(result);
+    res.end(result);
   }
 }
 
 app.listen(port, '0.0.0.0', function () {
  console.log('Server running at http://127.0.0.1:%s/', port);
 });
-
-function getClientIp(req) {
-    return req.headers['x-forwarded-for'] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.connection.socket.remoteAddress || '';
-}
