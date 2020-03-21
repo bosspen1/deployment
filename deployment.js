@@ -61,7 +61,7 @@ function sendMessage(content) {
 }
 
 app.get('/*', function (req, res) {
-  red.end('Request method get not supported');
+  req.end('Request method get not supported');
 });
 
 app.post('/*', function (req, res) {
