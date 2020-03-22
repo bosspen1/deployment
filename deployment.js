@@ -2,9 +2,22 @@ const { port, token, pushEvent, prodBranch, ddToken, projectMap } = require('./c
 
 const http = require("http");
 const exec = require('child_process').exec;
+const log4js = require("log4js");
 
 const express = require('express');
 const app = express();
+
+log4js.configure({
+  appenders: {
+    deploymentLogs: { type: 'file', filename: './deployment.log' },
+    console: { type: 'console' }
+  },
+  categories: {
+    default: { appenders: ['console', 'deploymentLogs'], level: 'trace' }
+  }
+});
+
+const logger = log4js.getLogger();
 
 function getClientIp(req) {
   return req.headers['x-forwarded-for'] ||
@@ -21,7 +34,7 @@ function execTask(cmd) {
     } else {
       result = `${ stdout }`;
     }
-    console.log('result = %s', result);
+    logger.info('result = %s', result);
     sendMessage(result);
     // res.end(stdout);
   });
@@ -45,15 +58,15 @@ function sendMessage(content) {
 
   const https = require('https');
   const req = https.request(options, (res) => {
-    console.log(`statusCode: ${res.statusCode}`);
+    logger.info(`statusCode: ${res.statusCode}`);
     res.setEncoding('utf8');
     res.on('data', (chunk) => {
-      console.log(`body: ${chunk}`);
+      logger.info(`body: ${chunk}`);
     });
   });
 
   req.on('error', (e) => {
-    console.error(`error: ${e.message}`);
+    logger.error(e);
   });
 
   req.write(JSON.stringify(data));
@@ -68,7 +81,7 @@ app.post('/*', function (req, res) {
   try {
     handle(req, res);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     res.end(error);
   }
 });
@@ -78,8 +91,7 @@ function handle(req, res) {
   const { method, url, headers } = req;
   const ip = getClientIp(req);
 
-  console.log(new Date());
-  console.log('method = %s, url = %s, ip = %s', method, url, ip);
+  logger.info('method = %s, url = %s, ip = %s', method, url, ip);
 
   if (method !== 'POST') {
     res.end('Request method ' + method + ' not supported');
@@ -89,7 +101,7 @@ function handle(req, res) {
   let xToken = headers[`x-gitee-token`];
   let xEvent = headers[`x-gitee-event`];
 
-  console.log('token = %s, event = %s', xToken, xEvent);
+  logger.info('token = %s, event = %s', xToken, xEvent);
 
   if (xToken !== token) {
     res.end('401 Unauthorized, invalid token: ' + xToken);
@@ -118,20 +130,23 @@ function handle(req, res) {
     req.addListener("end", () => {
       try {
         let obj = JSON.parse(jsonData);
-        console.log(`ref: ${obj.ref}`);
+        logger.info(`ref: ${obj.ref}`);
         if (obj.ref === 'refs/heads/' + prodBranch) {
           execTask(cmd);
         }
-      } catch(error) {}
+      } catch(error) {
+        logger.error(error);
+      }
     });
   } catch (error) {
     result = `${ error }`;
+    logger.error(error);
   } finally {
-    console.log(result);
+    logger.info(result);
     res.end(result);
   }
 }
 
 app.listen(port, '0.0.0.0', function () {
- console.log('http://127.0.0.1:%s/', port);
+  logger.info('http://127.0.0.1:%s/', port);
 });
