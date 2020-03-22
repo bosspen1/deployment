@@ -16,4 +16,4 @@ cp -f $ProjectHome/*.json $RunHome/
 
 cd $RunHome
 npm install
-nohup node $App.js > $App.log 2>&1 &
+nohup node $App.js > /dev/null 2>&1 &
