@@ -61,7 +61,7 @@ function sendMessage(content) {
 }
 
 app.get('/*', function (req, res) {
-  req.end('Request method get not supported');
+  res.end('Request method get not supported');
 });
 
 app.post('/*', function (req, res) {
@@ -133,5 +133,5 @@ function handle(req, res) {
 }
 
 app.listen(port, '0.0.0.0', function () {
- console.log('Server running at http://127.0.0.1:%s/', port);
+ console.log('http://127.0.0.1:%s/', port);
 });
